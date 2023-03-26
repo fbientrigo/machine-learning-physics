@@ -9,7 +9,7 @@
 - `impl_2_mechanics`: based on the concepts and methods of "AdS/Deep Learning made easy: simple examples" from Song, M. et al. Provides the same approach but to simpler differential equations presented in classical mechanics.
 - `pytorch_introduction`: Provides jupyter notebooks with more and more elaborated implementations of networks, the uses of algorithms like K_Folding for improving training and cross validation and rough implementations of the final project, providing a guide for others to understand.
 
-# Papers Cited:
+# Papers Cited and in Implementation:
 
 ‌Hashimoto, K., Sugishita, S., Tanaka, A., & Tomiya, A. (2018). Deep learning and holographic QCD. Physical Review D, 98(10). https://doi.org/10.1103/physrevd.98.106014
 
