@@ -3,6 +3,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 import csv
+import torch
 
 #========================================================
 #       Integrator for 2nd Order Equation
@@ -21,11 +22,11 @@ import csv
 g = 9.81
 m = 1.0
 
-input_ = np.linspace(0, 10, 100) # limits
+input_ = np.linspace(0, 250, 500) # limits
 
 def force_function(v):
     """ In some cases is purely a function of position, other on velocity """
-    return (v*(300-v)/1000) * ( 1 + torch.sin(v/20)/10 + torch.cos(v/40)/10 ) + (v/70)**2
+    return (v*(300-v)/1000) * ( 1 + np.sin(v/20)/10 + np.cos(v/40)/10 ) + (v/70)**2
 
 # ===========================================
 
@@ -64,11 +65,11 @@ def export_force_function():
 
 def main(args):
     # the end time is controlled by the number of points
-    N = 1000000
+    N = 300
     # harcodding the dt so is always fixed for a NN
-    dt = 1e-5
+    dt = 1e-2
 
-    z0 = [100.0, 0.0]  # initial condition: y=1, v=0
+    z0 = [0.0, 100.0]  # initial condition: y=1, v=0
     
     # tol = 1e-5  # tolerance for error control
 
