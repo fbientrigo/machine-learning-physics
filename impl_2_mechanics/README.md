@@ -4,13 +4,26 @@ Based on
 
 ‌Hashimoto, K., Sugishita, S., Tanaka, A., & Tomiya, A. (2018). Deep learning and holographic QCD. Physical Review D, 98(10). https://doi.org/10.1103/physrevd.98.106014
 
-The steps are divided in 
 
-- Data Generation: where goes `integrate_data.py`
--
+## folder structure:
+- data: clean data for usage, use it for generating new data an cleaning in place as well; contains the `datacleaner.py`
+- 
+
+# Usage
+The steps are divided in 
+- Data Generation: where goes `integrate_data.py`, uses RK5 integration scheme with `dt=1e-3`, the data is saved on `gen_data/` (generated data)
+- Data Cleaning: `clean_data.py` produces time steps until 50 time steps (hardcoded), uses data from `gen_data` the data is then saved on `data/`
+- 
+
 
 
 # Data Generation
+For use of the script example:
+```
+python .\integrate_data.py -name song_v150 -xi 0 -vi 150 -N 5000
+```
+
+
 The way is worked on the paper, is the unknown differential equation as a unknown function that's fixed, it separates different cases, where this function only depends on one of the variables
 
 - only dependent on position (q for general coordinate)
@@ -75,6 +88,13 @@ x1 = self.force(x1)
 x = torch.stack((x0, x1), dim=1)
 return x
 ```
+
+# Data Cleaning
+For use of the script example:
+```
+python .\clean_data.py -input .\gen_data\song_v0_dt1e-3.csv -output song_v0 -vmax 10
+```
+
 
 ## Loss functions and smoothness
 - adding physics constrain to the function
