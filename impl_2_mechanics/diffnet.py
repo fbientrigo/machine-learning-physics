@@ -101,3 +101,96 @@ def physics_constrain(force_params):
 
     return (force_params[0])**2
 
+
+
+if __name__ == '__main__':
+    from dataset import MyDataset, DataLoader
+    import torch
+    import torch.nn as nn
+
+    import pandas as pd
+    import glob
+    import matplotlib.pyplot as plt
+
+    my_dataset = MyDataset(pd.read_csv("./data/song_combined_df.csv", index_col=0))
+    my_dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
+
+    # Loading the model
+    model = torch.load("./model/040223.pt")
+
+    plt.plot(list(model.parameters())[0].detach())
+    plt.title("Loaded parameters of activation function")
+    plt.show()
+
+    # Hyperparameters
+    smooth_rate = 0.03
+    constrain_rate = 1.0 # F(v=0) = 0
+    targets_rate = 1.05
+
+    # Define number of epochs
+    num_epochs = 50
+
+    # Define loss function and optimizer
+    L2_loss = nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.4)
+
+    running_loss = 0
+    loss_array = []
+
+    #used for graphs
+    max_i = len(my_dataloader)
+
+    # Iterate through epochs
+    for epoch in range(num_epochs):
+        # Iterate through data in the DataLoader
+        for i, data in enumerate(my_dataloader, 0):
+            # Get inputs and targets from data
+            inputs, targets = data
+
+            # Zero the parameter gradients
+            optimizer.zero_grad()
+
+            # Forward pass
+            outputs = model.forward(inputs)
+
+            L2_computed_loss = L2_loss(outputs, targets)
+            # Compute loss
+            loss = smooth_rate * smooth_loss(list(model.parameters())[0]) +\
+                constrain_rate*physics_constrain(list(model.parameters())[0]) + targets_rate * L2_computed_loss
+
+
+            # Backward pass and optimization
+            loss.backward()
+            optimizer.step()
+
+            # Print statistics
+            running_loss += loss.item()
+            if i % 100 == 99:    # Print every 100 mini-batches
+                print("L2_loss:", L2_computed_loss.detach().item())
+                loss_array.append(L2_computed_loss.detach().item())
+                print('[Epoch %d, Mini-batch %5d] Loss: %.3f' %
+                    (epoch + 1, i + 1, running_loss / 100))
+                running_loss = 0.0
+        
+        if epoch % 100 == 10:
+            # saving the model
+            torch.save(model, f"./model/song_040223_epoch{epoch}.pt")
+            
+            #ploting
+            plt.plot(list(model.parameters())[0].detach(), alpha = epoch/num_epochs)
+            plt.show()
+            plt.savefig(f"./evolution_force/song_epoch_{epoch}_loss_{running_loss :.2f}.png")
+
+
+    # finish training
+    torch.save(model, f"./model/song_040223_epoch{epoch}.pt")
+    print('Finished training')
+
+    plt.plot(list(model.parameters())[0].detach())
+    plt.title("After training parameters of activation function")
+    plt.show()
+
+    # plot loss
+    plt.plot(loss_array)
+    plt.title("evolution of L2 loss output target")
+    plt.show()
