@@ -6,7 +6,7 @@ Based on
 
 
 ## folder structure:
-- data: clean data for usage, use it for generating new data an cleaning in place as well; contains the `datacleaner.py`
+- data: clean data for usage, use it for generating new data an cleaning in place as well
 - 
 
 # Usage
