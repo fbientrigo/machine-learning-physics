@@ -33,12 +33,12 @@ class F_function(nn.Module):
         else:
             x, v = X[:,0], X[:,1]
 
-        floor_v = torch.floor(v)
-        ceil_v = (floor_v + 1).clamp(max=N) #adresses the overflow problem
+        floor_v = torch.floor(v).long()
+        ceil_v = (floor_v + 1).clamp(max=N).long() #adresses the overflow problem
         alpha = v - floor_v
 
         # print(f"max: {max(ceil_v.int())}")
-        return torch.stack([x, v + dt* ( (1 - alpha) * self.force[floor_v.int()] + alpha * self.force[ceil_v.int()] ) ] ).T
+        return torch.stack([x, v + dt* ( (1 - alpha) * self.force[floor_v] + alpha * self.force[ceil_v] ) ] ).T
 
 
 class W_matrix(nn.Module):
