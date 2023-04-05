@@ -25,9 +25,9 @@ m = 1.0
 input_ = np.linspace(0, 250, 500) # limits
 
 def force_function(v):
-    """ In some cases is purely a function of position, other on velocity """
+    """ this function is song_f2 """
     v = np.abs(v)
-    return (v*(300-v)/1000) * ( 1 + np.sin(v/20)/10 + np.cos(v/40)/10 ) + (v/70)**2
+    return 1.051359*v-4.24475e-2*v**2 +5.03648e-4*v**3+2.73048e-6 *v**4 -9.34265e-8*v**5 + 6.91675e-10*v**6 - 2.16279e-12*v**7 + 2.50634e-15 * v**8
 
 # ===========================================
 
@@ -53,7 +53,7 @@ def export_force_function():
     plt.title(f'Force function Force')
     plt.plot( input_, force_array )
     plt.grid()
-    plt.savefig(f'data/force.png')
+    plt.savefig(f'gen_data/force.png')
     plt.show()
     
 

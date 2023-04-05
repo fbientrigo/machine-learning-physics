@@ -23,6 +23,7 @@ For use of the script example:
 python .\integrate_data.py -name song_v150 -xi 0 -vi 150 -N 5000
 ```
 
+All data generated will end up in `gen_data`; its recommended after a data set has stop being used, to create a folder for it inside and store the data there
 
 The way is worked on the paper, is the unknown differential equation as a unknown function that's fixed, it separates different cases, where this function only depends on one of the variables
 
@@ -94,6 +95,8 @@ For use of the script example:
 ```
 python .\clean_data.py -input .\gen_data\song_v0_dt1e-3.csv -output song_v0 -vmax 10
 ```
+
+This data acces data in the 
 
 
 ## Loss functions and smoothness

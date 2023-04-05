@@ -1,21 +1,14 @@
 import pandas as pd
 import argparse
+import glob
 
 
-def main(args):
 
-    if args.vmax:
-        print(args.vmax)
 
-    input_path = args.input
-    output_path = args.output
+def rework_data(args, df):
+    output_name = args.output
 
-    output_path = './data/' + output_path +'.csv'
-
-    print(f"input path: {input_path}")
-    print(f"output path: {output_path}")
-
-    df = pd.read_csv(input_path)
+    output_path = './data/' + output_name +'.csv'
 
     data_worked = pd.DataFrame()
     x_initial = []
@@ -66,6 +59,59 @@ def main(args):
     #datatesting = data_worked[250:-1]
 
     data_worked.to_csv(output_path)
+
+
+def main(args):
+    # generate the data
+    input_path = args.input
+
+    print(f"input path: {input_path}")
+    print(f"output path: {args.output}")
+
+    # all the names that fit this name
+    csv_files = glob.glob(input_path+"*.csv")
+
+    print(f"to read: {csv_files}")
+
+    # empty list for the data frames
+    dfs = []
+    for filename in csv_files:
+        print(f"reading {filename} with {len(filename)} data points")
+        df = pd.read_csv(filename, index_col=0)
+        dfs.append(df)
+
+    # combine all data frames into 1
+    combined_df = pd.concat(dfs, ignore_index=True)
+
+
+    if args.vmax:
+        print(f"len of dataframe before vmax: {len(combined_df)}")
+
+        bool_mask = combined_df['velocity'] <= args.vmax
+        combined_df = combined_df[ bool_mask ].reset_index(drop=True)
+        # its important to reset index or will get errors when trying to acces non existen indexs
+
+        print(f"len of dataframe after vmax: {len(combined_df)}")
+        
+
+    if args.xmax:
+        print(f"len of dataframe before xmax: {len(combined_df)}")
+        
+        bool_mask = combined_df['position'] <= args.xmax
+        combined_df = combined_df[ bool_mask ].reset_index(drop=True)
+
+        print(f"len of dataframe after xmax: {len(combined_df)}")
+
+
+    # rework the data & save it
+    rework_data(args, combined_df)
+
+    # imprimir el DataFrame combinado
+    print(f"ammount of data so far: {len(combined_df)}")
+    #combined_df.tail()
+
+
+
 
 
 
