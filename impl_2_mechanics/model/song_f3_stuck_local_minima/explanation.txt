@@ -1,0 +1,5 @@
+this was done with far less data than song_f1
+
+only 3000 data points
+
+while the next try uses data redundancy with 30000

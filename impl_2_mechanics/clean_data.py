@@ -3,13 +3,32 @@ import argparse
 import glob
 
 
+def output_data(args, df):
+    output_name = args.output
+    output_path = './data/' + output_name +'.csv'
+
+    df.to_csv(output_path)
 
 
 def rework_data(args, df):
-    output_name = args.output
+    """reworks data in place and replaces the file with its improved version"""
 
-    output_path = './data/' + output_name +'.csv'
 
+    # filter data:
+    if args.vmax:
+        print(f"len of dataframe before vmax: {len(df)}")
+        bool_mask = df['velocity'] <= args.vmax
+        df = df[ bool_mask ].reset_index(drop=True)
+        # its important to reset index or will get errors when trying to acces non existen indexs
+        print(f"len of dataframe after vmax: {len(df)}")
+        
+    if args.xmax:
+        print(f"len of dataframe before xmax: {len(df)}")
+        bool_mask = df['position'] <= args.xmax
+        df = df[ bool_mask ].reset_index(drop=True)
+        print(f"len of dataframe after xmax: {len(df)}")
+
+    # re order in time steps for NN
     data_worked = pd.DataFrame()
     x_initial = []
     v_initial = []
@@ -51,14 +70,8 @@ def rework_data(args, df):
     data_worked['x_step50'] = x_step50
     data_worked['v_step50'] = v_step50
 
-
-    # separate when training
-    #Ndata = len(data_worked)
-    #datatraining = data_worked[:202]
-    #datavalidation = data_worked[202:250]
-    #datatesting = data_worked[250:-1]
-
-    data_worked.to_csv(output_path)
+    # data_worked.to_csv(output_path)
+    return data_worked
 
 
 def main(args):
@@ -69,7 +82,9 @@ def main(args):
     print(f"output path: {args.output}")
 
     # all the names that fit this name
-    csv_files = glob.glob(input_path+"*.csv")
+    # excepting a force.csv that we may have previously exported
+    csv_files = [file for file in glob.glob(input_path+"*.csv") if "force.csv" not in file]
+
 
     print(f"to read: {csv_files}")
 
@@ -77,40 +92,22 @@ def main(args):
     dfs = []
     for filename in csv_files:
         print(f"reading {filename} with {len(filename)} data points")
-        df = pd.read_csv(filename, index_col=0)
+        df = pd.read_csv(filename)
+        # rework data and save inplace
+        df = rework_data(args, df)
         dfs.append(df)
 
     # combine all data frames into 1
     combined_df = pd.concat(dfs, ignore_index=True)
 
 
-    if args.vmax:
-        print(f"len of dataframe before vmax: {len(combined_df)}")
 
-        bool_mask = combined_df['velocity'] <= args.vmax
-        combined_df = combined_df[ bool_mask ].reset_index(drop=True)
-        # its important to reset index or will get errors when trying to acces non existen indexs
-
-        print(f"len of dataframe after vmax: {len(combined_df)}")
-        
-
-    if args.xmax:
-        print(f"len of dataframe before xmax: {len(combined_df)}")
-        
-        bool_mask = combined_df['position'] <= args.xmax
-        combined_df = combined_df[ bool_mask ].reset_index(drop=True)
-
-        print(f"len of dataframe after xmax: {len(combined_df)}")
 
 
     # rework the data & save it
-    rework_data(args, combined_df)
+    output_data(args, combined_df)
 
-    # imprimir el DataFrame combinado
     print(f"ammount of data so far: {len(combined_df)}")
-    #combined_df.tail()
-
-
 
 
 

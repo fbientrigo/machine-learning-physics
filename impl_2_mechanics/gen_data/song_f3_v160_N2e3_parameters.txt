@@ -1,0 +1,6 @@
+N: 2000 
+dt: 0.001 
+t0: 0.0, tf= 2.0 
+z0: [1.0, 160.0] 
+position_min: 1.0, position_max: 339.7717594301281 
+velocity_min: 160.0, velocity_max: 178.473134855417 
