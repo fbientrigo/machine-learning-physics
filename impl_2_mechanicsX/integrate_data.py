@@ -13,14 +13,15 @@ import csv
 #   python integrate_data.py -name "name.csv"
 #========================================================
 
-#   configurations for the global model
+# global parameters of tolerance for integrator
 
-dt = 5e-2
+absolute_tolerance = 1e-6
+
+relative_tolerance = 1e-6
+
 
 
 # =========force function here============== <<<<
-g = 9.81
-m = 1.0
 
 input_ = np.linspace(0, 250, 500) # limits
 
@@ -28,6 +29,12 @@ def force_function(x):
     """ this function """
     return  ( (x-1) * (x-11)**2 * (x-23)**2 / 8000 ) - 0.7
 
+
+
+
+
+# ==================================================================
+# Inner workings of code:
 # ===========================================
 
 
@@ -65,12 +72,46 @@ def export_force_function():
         writer.writerows(data)
 
 
-def main(args):
-    
+def compile_data_to_csv(data, args):
+
+
+    N = args.N
+    z0 = [args.xi, args.vi]  # initial condition: y=1, v=0
+    t0 = 0.0
+    dt = args.dt
+
+    tf = t0 + N * dt
+
+    t_span = [t0,tf]
+    t_eval = np.arange(start= t0, stop=tf, step=dt)
+
+    with open(f'gen_data/{args.name}.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['id_conditions','time', 'position', 'velocity'])
+        writer.writerows(data)
+
+
+    # ======= writting the data configuration
+    with open(f'gen_data/{args.name}_parameters.txt', 'w', newline='') as file:
+        file.write(f'N: {N} \n')
+        file.write(f'dt: {dt} \n')
+        file.write(f't0: {t0}, tf= {tf} \n')
+        file.write(f'z0: {z0} \n')
+        # file.write(f'tolerance: {tol} \n')
+    # ======
+
+
+
+def run_integrator(args):
+      
     # ================ change parameters here   =========
     N = args.N
     z0 = [args.xi, args.vi]  # initial condition: y=1, v=0
     t0 = 0.0
+    dt = args.dt
+
+    # id for saving
+    data_id = f"xi_{args.xi}_vi_{args.vi}" # for every initial condition
 
 
     # ===================================================
@@ -84,46 +125,39 @@ def main(args):
     t_span = [t0,tf]
     t_eval = np.arange(start= t0, stop=tf, step=dt)
 
-
-
+    # Integrator
     sol = solve_ivp(fun=lambda t, z: f(t, z), t_span=t_span, 
-        y0=z0, t_eval=t_eval, vectorized=True)
+        y0=z0, t_eval=t_eval, vectorized=True, atol=absolute_tolerance, rtol=relative_tolerance)
 
 
+    # Given state of solution
     if sol.status == 0:
         y = sol.y[0] # position
         v = sol.y[1] # velocity
-        data = np.vstack((sol.t, y, v)).T
+        data_id = np.array([data_id]*len(sol.t)).reshape(1,-1)
 
-        with open(f'gen_data/{args.name}_dt1e-3.csv', 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['time', 'position', 'velocity'])
-            writer.writerows(data)
+        data = np.vstack((data_id, sol.t, y, v)).T
 
-        plt.title(f'{args.name}')
-        plt.plot(sol.t, y, label='rk4 - position')
-        plt.plot(sol.t, v, label='rk4 - velocity')
-        plt.xlabel('Time')
-        plt.grid()
-        plt.legend()
-        plt.savefig(f'gen_data/{args.name}_dt1e-3.png')
-        plt.show()
+        return sol.status, data
 
     else:
         print('Solver failed to converge!')
         print(sol.message)
 
-    # ======= writting the data
-    with open(f'gen_data/{args.name}_parameters.txt', 'w', newline='') as file:
-        file.write(f'N: {N} \n')
-        file.write(f'dt: {dt} \n')
-        file.write(f't0: {t0}, tf= {tf} \n')
-        file.write(f'z0: {z0} \n')
-        file.write(f'position_min: {np.min(y)}, position_max: {np.max(y)} \n')
-        file.write(f'velocity_min: {np.min(v)}, velocity_max: {np.max(v)} \n')
-        # file.write(f'tolerance: {tol} \n')
-    # ======
+        return sol.status, np.array([np.nan, np.nan, np.nan, np.nan])
 
+
+
+def main(args):
+
+    solution_status, data = run_integrator(args)
+
+    if solution_status == 0:
+        # compile data sections
+        print("Compilation function goes here")
+        compile_data_to_csv(data, args)
+
+    
 
 
 if __name__ == '__main__':
@@ -133,6 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('-xi',type=float, help='specifies initial position')
     parser.add_argument('-vi',type=float, help='specifies initial velocity')
     parser.add_argument('-N',type=int, help='specifies ammounts of jump steps, recommended around 1e3 ')
+    parser.add_argument('-dt',type=float, help='specifies discrete jumps of time in integrator, recommended 5e-2')
     args = parser.parse_args()
     
     # if -force is used, only execute the export_force_function()
