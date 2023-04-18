@@ -100,9 +100,35 @@ def compile_data_to_csv(data, args):
         # file.write(f'tolerance: {tol} \n')
     # ======
 
+def make_integrator_args(name, xi, vi, N, dt):
+    """
+    Compiles in a pandas series all of the essential arguments for integrator
+    >> arguments = pd.Series({'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dt':dt })
+    >> solution_status, data = run_integrator( arguments )
+    """
 
+    import pandas as pd
+
+    integrator_args = pd.Series(
+        {'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dt':dt }
+    )
+    return integrator_args
+    
 
 def run_integrator(args):
+    """
+    uses scipy.solve_ivp, with the RK45; if the integrator converge
+    it gives out an array: (data_id, t, y, v)
+    - data_id are the initial conditions as string
+    - t is the time of every data point
+    - y is the position at time t
+    - v is the speed at time t
+
+    it needs input as a pandas Series
+    >> arguments = pd.Series({'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dt':dt })
+    >> solution_status, data = run_integrator( arguments )
+    """
+
       
     # ================ change parameters here   =========
     N = args.N

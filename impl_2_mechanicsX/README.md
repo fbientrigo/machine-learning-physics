@@ -8,17 +8,61 @@ This approach in a way classifies, but the $x_f$ decission is not trivial and wi
 In the paper is chooseen to be $x_f = 0$, which simplifys the function of post processing. An explanation could be the use or idea of roots.
 
 
-# construction
-- [ ] automatic data generation
-- generate M number of points; control initial conditions with better automation process
-    - what is better automation?
+# Pipeline
+The final pipeline should take as inputs:
+
+part of integrator:
+- `name`
+- `xi`
+- `vi`
+- `N`
+- `dt`
+
+part of cleaning:
+- `x_limits`
+- `v_limits`
+
+part of compiling data, which is included as cleaning
+- `xf` where to set the closeness conditions
+- 
 
 
 
-- every position equal to $x_f=0 \pm \epsilon$ will be taken as a final step and take the previous data points as part of its data
 
 
 
+
+a) be able to generate an uniform distribution of initial conditions
+
+b) being able to generate data from distribution of initial conditions
+
+c) combine all generated data into a csv
+
+c.2) optional being able to divide the csv
+
+d) add `K` data to every step thats close to a defined `xf`
+
+d) 
+
+
+## perfect workings
+We define what is a perfect working of the model:
+- Write all the conditions in a json
+- The program reads this json and uses the name and date to generate a folder
+- The folder is a standalone working environment, inside the folder it populates with
+    - data
+    - gen_data
+    - model
+    - evolution_force
+- It adds the working folder to a json file with all the already made folders, having information on eachone about:
+    - total training epochs
+    - total hours of training
+    - loss of the best fitted model
+- Its all controllable from the root folder, which contains the scripts
+- It asks for instructions to generate an ammount of random data
+    - this generation can be shown and then used to generate the csv
+- Runs cleaning of the data and adds the `K` variable
+- 
 
 
 
