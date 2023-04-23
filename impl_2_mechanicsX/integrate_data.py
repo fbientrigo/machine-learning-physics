@@ -31,8 +31,6 @@ def force_function(x):
 
 
 
-
-
 # ==================================================================
 # Inner workings of code:
 # ===========================================
@@ -78,7 +76,7 @@ def compile_data_to_csv(data, args):
     N = args.N
     z0 = [args.xi, args.vi]  # initial condition: y=1, v=0
     t0 = 0.0
-    dt = args.dt
+    dt = args.dtime
 
     tf = t0 + N * dt
 
@@ -110,12 +108,12 @@ def make_integrator_args(name, xi, vi, N, dt):
     import pandas as pd
 
     integrator_args = pd.Series(
-        {'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dt':dt }
+        {'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dtime':dt }
     )
     return integrator_args
     
 
-def run_integrator(args):
+def run_integrator(args, debug=False):
     """
     uses scipy.solve_ivp, with the RK45; if the integrator converge
     it gives out an array: (data_id, t, y, v)
@@ -125,7 +123,7 @@ def run_integrator(args):
     - v is the speed at time t
 
     it needs input as a pandas Series
-    >> arguments = pd.Series({'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dt':dt })
+    >> arguments = pd.Series({'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dtime':dt })
     >> solution_status, data = run_integrator( arguments )
     """
 
@@ -134,19 +132,14 @@ def run_integrator(args):
     N = args.N
     z0 = [args.xi, args.vi]  # initial condition: y=1, v=0
     t0 = 0.0
-    dt = args.dt
+    dt = args.dtime
 
     # id for saving
     data_id = f"xi_{args.xi}_vi_{args.vi}" # for every initial condition
-
-
-    # ===================================================
-    # harcodding the dt so is always fixed for a NN dt=1e-3
-    # dont change unless you change your NN and regenerate all data
-
     
     tf = t0 + N * dt
-    print(f't0: {t0}; tf: {tf}, dt: {dt}')
+    if debug:
+        print(f't0: {t0}; tf: {tf}, dt: {dt}')
 
     t_span = [t0,tf]
     t_eval = np.arange(start= t0, stop=tf, step=dt)
@@ -158,17 +151,22 @@ def run_integrator(args):
 
     # Given state of solution
     if sol.status == 0:
-        y = sol.y[0] # position
-        v = sol.y[1] # velocity
-        data_id = np.array([data_id]*len(sol.t)).reshape(1,-1)
+        
+        y = np.array(sol.y[0], dtype='float64') # position
+        v = np.array(sol.y[1], dtype='float64') # velocity
 
-        data = np.vstack((data_id, sol.t, y, v)).T
+        # its enought to have acces to the data id as one string
+        # data_id = np.array([data_id]*len(sol.t)).reshape(1,-1)
 
-        return sol.status, data
+        # this should be a float
+        data = np.vstack((sol.t, y, v)).T
+
+        return data_id, sol.status, data
 
     else:
-        print('Solver failed to converge!')
-        print(sol.message)
+        if debug:
+            print('Solver failed to converge!')
+            print(sol.message)
 
         return sol.status, np.array([np.nan, np.nan, np.nan, np.nan])
 
@@ -193,7 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('-xi',type=float, help='specifies initial position')
     parser.add_argument('-vi',type=float, help='specifies initial velocity')
     parser.add_argument('-N',type=int, help='specifies ammounts of jump steps, recommended around 1e3 ')
-    parser.add_argument('-dt',type=float, help='specifies discrete jumps of time in integrator, recommended 5e-2')
+    parser.add_argument('-dtime',type=float, help='specifies discrete jumps of time in integrator, recommended 5e-2')
     args = parser.parse_args()
     
     # if -force is used, only execute the export_force_function()
