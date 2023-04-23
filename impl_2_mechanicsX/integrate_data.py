@@ -42,7 +42,7 @@ def f(t, z):
 
     # ======== UPDATE HERE IF NEW force_function ================= <<<<
     # dzdt = [v, force_function(y,v)]
-    dzdt = [v, force_function(v) ]
+    dzdt = [v, force_function(y) ]
     # ============================================================
     return dzdt
 
@@ -113,7 +113,7 @@ def make_integrator_args(name, xi, vi, N, dt):
     return integrator_args
     
 
-def run_integrator(args, debug=False):
+def run_integrator(args, debug=False, vec_function = f):
     """
     uses scipy.solve_ivp, with the RK45; if the integrator converge
     it gives out an array: (data_id, t, y, v)
@@ -125,6 +125,8 @@ def run_integrator(args, debug=False):
     it needs input as a pandas Series
     >> arguments = pd.Series({'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dtime':dt })
     >> solution_status, data = run_integrator( arguments )
+
+    by default it used the function defined in the script
     """
 
       
