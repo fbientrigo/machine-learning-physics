@@ -36,7 +36,7 @@ def force_function(x):
 # ===========================================
 
 
-def f(t, z):
+def fun(t, z):
     """function in the differential equation"""
     y, v = z
 
@@ -113,7 +113,7 @@ def make_integrator_args(name, xi, vi, N, dt):
     return integrator_args
     
 
-def run_integrator(args, debug=False, vec_function = f):
+def run_integrator(args, debug=False, vec_function=fun, relative_tolerance=relative_tolerance):
     """
     uses scipy.solve_ivp, with the RK45; if the integrator converge
     it gives out an array: (data_id, t, y, v)
@@ -147,8 +147,9 @@ def run_integrator(args, debug=False, vec_function = f):
     t_eval = np.arange(start= t0, stop=tf, step=dt)
 
     # Integrator
-    sol = solve_ivp(fun=lambda t, z: f(t, z), t_span=t_span, 
-        y0=z0, t_eval=t_eval, vectorized=True, atol=absolute_tolerance, rtol=relative_tolerance)
+    sol = solve_ivp(fun=lambda t, z: vec_function(t, z), 
+        t_span=t_span, y0=z0, t_eval=t_eval, vectorized=True, 
+        atol=absolute_tolerance, rtol=relative_tolerance)
 
 
     # Given state of solution
@@ -156,9 +157,6 @@ def run_integrator(args, debug=False, vec_function = f):
         
         y = np.array(sol.y[0], dtype='float64') # position
         v = np.array(sol.y[1], dtype='float64') # velocity
-
-        # its enought to have acces to the data id as one string
-        # data_id = np.array([data_id]*len(sol.t)).reshape(1,-1)
 
         # this should be a float
         data = np.vstack((sol.t, y, v)).T
@@ -176,7 +174,7 @@ def run_integrator(args, debug=False, vec_function = f):
 
 def main(args):
 
-    solution_status, data = run_integrator(args)
+    data_id, solution_status, data = run_integrator(args)
 
     if solution_status == 0:
         # compile data sections
