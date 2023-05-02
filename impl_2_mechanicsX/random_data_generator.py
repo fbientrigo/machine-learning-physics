@@ -81,7 +81,7 @@ def main(args, xlow=-10.0, xhigh=20.0, vlow=-5.0, vhigh=5.0):
     # data in the range where xf is close to xreal (normally set to 0)
     print(f"Total positive data K=0: {sum(total_data_frame['K'] == 0)} data points")
 
-    total_data_frame.to_csv(f"./{args.name}.csv")
+    total_data_frame.to_csv(f"./{args.name}")
 
     run_plots(total_data_frame, xlow, xhigh, vlow, vhigh, save_path=".")
 
@@ -125,18 +125,20 @@ def run_plots(data, xlow, xhigh, vlow, vhigh, save_path=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Integrator for 2nd Order Differential Equation, it creates plot images and txt file with parameters')
-    parser.add_argument('-name', type=str, help='Name of the files, recommended the standard [force_name]_[v_speed_initial], because we always use dt=1e-3 the name will include dt1e-3 at the end')
+    parser.add_argument('-name', type=str, help='Name for saving the file, example: file.csv')
     parser.add_argument('-Nsamples',type=int, help='specifies ammounts of jump steps, recommended around 1e3 ')
     parser.add_argument('-dtime',type=float, default=1e-3, help='specifies discrete jumps of time in integrator, recommended 5e-2')
     parser.add_argument('-xtol',type=float, help='tolerance for integrator, recommended 5e-2')
-    parser.add_argument('-Nlayers',type=float, default=50,help='specifies discrete jumps of time in integrator, recommended 5e-2')
-
-
-
+    parser.add_argument('-Nlayers',type=float, default=50,help='Number of layers for NN')
 
 
     args = parser.parse_args()
 
+    # for generation
+    xlow=-10.0
+    xhigh=20.0
+    vlow=-5.0
+    vhigh=5.0
     
     if args.name:
-        main(args)
+        main(args, xlow, xhigh, vlow, vhigh)
