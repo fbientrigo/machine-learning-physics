@@ -45,3 +45,11 @@ If you wish to update the environment file after installing a new library:
 $ conda activate deepl
 $ conda env export > environment.yml
 ```
+
+for the library to be able to work, while is in construction to be in a future installable by `pip` globally, you have to go to `/DeepQl/` and run:
+
+```
+pip istall -e .
+```
+
+That will install the module in editable mode, so all changes inside the library are updated.

@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: deepql
+Version: 0.1.0
+Summary: A package for the physics inverse problem of finding the force giving the trajectory
+Author: Fabian Trigo
+Author-email: fbientrigo@gmail.com

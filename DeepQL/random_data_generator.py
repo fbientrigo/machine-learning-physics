@@ -1,4 +1,4 @@
-import integrate_data as intd
+from integrate_data import make_integrator_args, run_integrator
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -53,10 +53,10 @@ def random_data_generation( Nsamples,Nlayers ,dtime ,xtol ,force_function, xlim=
 
         # reconstruc the arguments with the ones that change
         name = "_"
-        arguments = intd.make_integrator_args(name,xi,vi,Nlayers, dtime)
+        arguments = make_integrator_args(name,xi,vi,Nlayers, dtime)
 
         try:
-            data_id, sol_estatus, data_generated = intd.run_integrator(
+            data_id, sol_estatus, data_generated = run_integrator(
                 arguments, vec_function=f_dottz, relative_tolerance=xtol)
             # we use the last data point
             data_point = [xi,vi,data_generated[-1][1], data_generated[-1][2] ]
@@ -73,6 +73,7 @@ def random_data_generation( Nsamples,Nlayers ,dtime ,xtol ,force_function, xlim=
 
 
 def generate_data(args, force_function, xlow=-10.0, xhigh=20.0, vlow=-5.0, vhigh=5.0):
+    """ for using as command line, prefer random_data_generation for scripts """
 
     Nsamples = args.Nsamples
     Nlayers = args.Nlayers

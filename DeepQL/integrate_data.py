@@ -13,13 +13,6 @@ import csv
 #   python integrate_data.py -name "name.csv"
 #========================================================
 
-# global parameters of tolerance for integrator
-
-absolute_tolerance = 1e-6
-
-relative_tolerance = 1e-6
-
-
 
 # =========force function here============== <<<<
 
@@ -111,9 +104,10 @@ def make_integrator_args(name, xi, vi, N, dt):
         {'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dtime':dt }
     )
     return integrator_args
-    
 
-def run_integrator(args, debug=False, vec_function=fun, relative_tolerance=relative_tolerance):
+
+
+def integrate_diffeq(N, xi, vi, dt, debug=False, vec_function=fun, xtol=1e-3, atol=1e-2):
     """
     uses scipy.solve_ivp, with the RK45; if the integrator converge
     it gives out an array: (data_id, t, y, v)
@@ -121,23 +115,13 @@ def run_integrator(args, debug=False, vec_function=fun, relative_tolerance=relat
     - t is the time of every data point
     - y is the position at time t
     - v is the speed at time t
-
-    it needs input as a pandas Series
-    >> arguments = pd.Series({'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dtime':dt })
-    >> solution_status, data = run_integrator( arguments )
-
-    by default it used the function defined in the script
     """
 
-      
-    # ================ change parameters here   =========
-    N = args.N
-    z0 = [args.xi, args.vi]  # initial condition: y=1, v=0
+    z0 = [xi, vi]  # initial condition: y=1, v=0
     t0 = 0.0
-    dt = args.dtime
 
     # id for saving
-    data_id = f"xi_{args.xi}_vi_{args.vi}" # for every initial condition
+    data_id = f"xi_{xi}_vi_{vi}" # for every initial condition
     
     tf = t0 + N * dt
     if debug:
@@ -149,7 +133,7 @@ def run_integrator(args, debug=False, vec_function=fun, relative_tolerance=relat
     # Integrator
     sol = solve_ivp(fun=lambda t, z: vec_function(t, z), 
         t_span=t_span, y0=z0, t_eval=t_eval, vectorized=True, 
-        atol=absolute_tolerance, rtol=relative_tolerance)
+        atol=atol, rtol=rtol)
 
 
     # Given state of solution
@@ -169,6 +153,29 @@ def run_integrator(args, debug=False, vec_function=fun, relative_tolerance=relat
             print(sol.message)
 
         return sol.status, np.array([np.nan, np.nan, np.nan, np.nan])
+
+
+
+
+def run_integrator(args, debug=False, vec_function=fun):
+    """
+    it needs input as a pandas Series
+    >> arguments = pd.Series({'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dtime':dt })
+    >> solution_status, data = run_integrator( arguments )
+
+    by default it used the function defined in the script
+    """
+
+      
+    # ================ change parameters here   =========
+    N = args.N
+    xi = args.xi
+    vi = args.vi
+    dt = args.dtime
+
+    return integrate_diffeq(N, xi, vi, dt, 
+        debug=False, vec_function=fun, xtol=1e-3, atol=1e-2)
+
 
 
 
