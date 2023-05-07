@@ -1,26 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
-#    Force dependent of only position
-#
-#
-#
-#
-#
-#
-
-
-
-
-
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 # =================================================================
 
-# resolcion
+# resolution
 # 
 N = 256 # size of the array of Function F
 dt = 5e-2
@@ -29,12 +16,12 @@ dt = 5e-2
 # =================================================================
 
 # ================== components of the Net ========================
-class F_function(nn.Module):
+class F_function_discrete(nn.Module):
     """
     Activation function for fitting, works by saving points in a parametrized array
     """
     def __init__(self, dt):
-        super(F_function, self).__init__()
+        super(F_function_discrete, self).__init__()
         self.force = nn.Parameter(torch.rand(N+1), requires_grad=True)
         
     def forward(self, X):
@@ -59,6 +46,61 @@ class F_function(nn.Module):
         return torch.stack([x, v + dt* ( (1 - alpha) * self.force[floor_v] + alpha * self.force[ceil_v] ) ] ).T
 
 
+class F_percentage_function(nn.Module):
+    """
+    Activation function for fitting, works by saving points in a parametrized array
+    its domain is constructed with lower_limit and upper_limit
+    then the ammount of points it contains is decided with N
+
+    this is the advanced version of F_function
+    """
+
+    def __init__(self, N, lower_limit, upper_limit, dt):
+        super(F_percentage_function, self).__init__()
+        self.force = nn.Parameter(torch.rand(N), requires_grad=True)
+        self.lower_limit = lower_limit
+        self.upper_limit = upper_limit
+        
+        
+    def forward(self, X):
+        """
+        does an interpolation based on percentage, 
+        - whats the percentage of the data point
+        - where is the closest force point to this percentage
+        - then returns [x, v + dt * selected_force]
+        """
+
+        # extracting values
+        if len(list(X.shape)) == 1: # one data point case
+            x, v = X[0], X[1]
+        else:
+            x, v = X[:,0], X[:,1]
+
+        # percentage for selecting the force point
+        y_percentage = (x - self.lower_limit)/(self.upper_limit - self.lower_limit) * 100
+
+        # Select the component of self.force that is closest to the percentage value
+        idx = torch.argmin(torch.abs(y_percentage.unsqueeze(1) - torch.arange(0, 100, 100/self.force.shape[0])), dim=1)
+
+        # Get the selected force value
+        selected_force = self.force[idx]
+
+        # Return the updated input
+        return torch.stack([x, v + dt * selected_force]).T
+
+
+    def plot_force(self):
+        """
+        plots the force points, giving not the index but the real meaning of inputs x
+        """
+        force_points = np.array(self.force.detach())
+        x_points = np.linspace(lower_limit, upper_limit, N)
+        
+        plt.plot(x_points, force_points)
+        plt.xlabel("x")
+        plt.ylabel("force")
+        plt.show()
+
 class W_matrix(nn.Module):
     """ we need a linear thats not trainable """
     def __init__(self, dt):
@@ -69,34 +111,81 @@ class W_matrix(nn.Module):
     def forward(self, x): 
         return F.linear(x, self.weights, self.bias)
 
+def narrow_gaussian(x, mu=0, sigma=0.01):
+    """ used as an approximation to dirac delta, it reacts close when x is close to mu """
+    pdf = (1 / (sigma * torch.sqrt(2 * np.pi))) * torch.exp(-(x - mu)**2 / (2 * sigma**2))
+    return 1-pdf / pdf.max()
+
+class T_postprocessing(nn.Module):
+    """
+    X takes a tensor and compares its position coordinate
+    to the xreal, if its inside a given distance, the function returns 0
+    else it will return 1
+
+    if the return is close to 0, it gives out the velocity as well
+    """
+    
+
+    def __init__(self, xreal = 0, epsilon = 1e-3):
+        super(T_postprocessing, self).__init__()
+        self.xreal = xreal
+        self.epsilon = epsilon
+        
+        
+    def forward(self, X):
+        if len(list(X.shape)) == 1: # one data point case
+            x, v = X[0], X[1]
+        else:
+            x, v = X[:,0], X[:,1]
+
+        # if x its close to xreal, this will return close to 0
+        # else it returns close to 1
+        activation_result = narrow_gaussian(x, mu=xreal, sigma=epsilon)
+        
+        print("on post processing, activation result was:")
+        print(activation_result)
+
+
+        if (activation_result >= epsilon): # if K is not close to 0
+            v = torch.full((len(v),), float('nan'))
+
+        return torch.stack([activation_result, v]).T
 
 
 # =============== the Net ==================
 
 class diffNet(nn.Module):
-    def __init__(self, depth, debug=True):
+    def __init__(self, depth, lower_limit, upper_limit, dt, ftype='percentage',post_process=False,debug=True):
         super(diffNet, self).__init__()
         
         w_mat = W_matrix(dt= dt) # defined one time, always the same
-        f_function = F_function(dt= dt) #defined one time, to only have N parameters
+
+        if ftype == "percentage":
+            activation_function = F_percentage_function(N, lower_limit, upper_limit, dt)
+        elif ftype == "discrete":
+            activation_function = F_function_discrete(dt= dt) 
+        else:
+            print("Use arguments ftype='percentage' or 'discrete'")
+
 
         layers = []
         layers.append(w_mat)
         
         for i in range(depth):
-            layers.append( f_function )
+            layers.append( activation_function )
             layers.append( w_mat )
+        
+        if post_process:
+            layers.append(post_process_layer)
+
+
         self.layers = nn.Sequential(*layers)
         
     def forward(self, X):
         return self.layers(X)
 
 
-def plot_f(force_parameters):
-    # graphing the array inside of this
-    force_values = force_parameters.detach().numpy()
-    plt.plot(force_values)
-    plt.show()
+
 
 
 
@@ -127,10 +216,9 @@ if __name__ == '__main__':
     import torch.nn as nn
 
     import pandas as pd
-    import glob
     import matplotlib.pyplot as plt
 
-    my_dataset = MyDataset(pd.read_csv("./data/song_combined_df.csv", index_col=0))
+    my_dataset = MyDataset(pd.read_csv("./data/song_combined_df.csv", index_col=0), step_size=50)
     my_dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
 
     # Loading the model

@@ -7,7 +7,7 @@ import argparse
 def narrow_gaussian(x, mu=0, sigma=0.01):
     """approximation of dirac delta, use a small sigma"""
     pdf = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-(x - mu)**2 / (2 * sigma**2))
-    return pdf / pdf.max()
+    return 1 - pdf / pdf.max()
 
 
 def post_process_data(data, xreal, epsilon):

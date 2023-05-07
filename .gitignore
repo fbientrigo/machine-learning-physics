@@ -1,2 +1,4 @@
 deepl-qm.code-workspace
 papers
+*.pyc
+*.pyc

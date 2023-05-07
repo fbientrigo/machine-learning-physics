@@ -2,29 +2,37 @@ import pandas as pd
 import argparse
 import glob
 
+#   
+#   Library for reordering the data from integrate_data.py
+#   it is able to multiply the ammount of data points
+#   from a long simulation
+#
 
-def output_data(args, df):
-    output_name = args.output
-    output_path = './data/' + output_name +'.csv'
 
-    df.to_csv(output_path)
+def separate_data(df, run_length=50, xmax=None, vmax=None):
+    """
+    given a long simulation, cut it into run_length pieces
+    long simulation: [1,2,3,4,5...]
+    will end up in:
+        [1,2,3,4,5...]
+        [2,3,4,5...  ]
+        [3,4,5...    ]
+        ...
 
-
-def rework_data(args, df):
-    """reworks data in place and replaces the file with its improved version"""
-
+    its recommended to be the depth of your network
+    """
 
     # filter data:
-    if args.vmax:
+    if vmax:
         print(f"len of dataframe before vmax: {len(df)}")
-        bool_mask = df['velocity'] <= args.vmax
+        bool_mask = df['velocity'] <= vmax
         df = df[ bool_mask ].reset_index(drop=True)
         # its important to reset index or will get errors when trying to acces non existen indexs
         print(f"len of dataframe after vmax: {len(df)}")
         
-    if args.xmax:
+    if xmax:
         print(f"len of dataframe before xmax: {len(df)}")
-        bool_mask = df['position'] <= args.xmax
+        bool_mask = df['position'] <= xmax
         df = df[ bool_mask ].reset_index(drop=True)
         print(f"len of dataframe after xmax: {len(df)}")
 
@@ -32,46 +40,37 @@ def rework_data(args, df):
     data_worked = pd.DataFrame()
     x_initial = []
     v_initial = []
-    x_step10 = []
-    v_step10 = []
-    x_step20 = []
-    v_step20 = []
-    x_step30 = []
-    v_step30 = []
-    x_step40 = []
-    v_step40 = []
-    x_step50 = []
-    v_step50 = []
+    x_steps = [[] for _ in range(run_length//10)]
+    v_steps = [[] for _ in range(run_length//10)]
 
-    for index in range(50,len(df)-1):
-        x_initial.append(df.position[index - 50])
-        v_initial.append(df.velocity[index - 50])
-        x_step10.append(df.position[index - 40])
-        v_step10.append(df.velocity[index - 40])
-        x_step20.append(df.position[index - 30])
-        v_step20.append(df.velocity[index - 30])
-        x_step30.append(df.position[index - 20])
-        v_step30.append(df.velocity[index - 20])
-        x_step40.append(df.position[index - 10])
-        v_step40.append(df.velocity[index - 10])
-        x_step50.append(df.position[index])
-        v_step50.append(df.velocity[index])
+    for index in range(run_length, len(df) - 1, 10):
+        x_initial.append(df.position[index - run_length])
+        v_initial.append(df.velocity[index - run_length])
+        for step in range(run_length//10):
+            x_steps[step].append(df.position[index - run_length + (1+step)*10])
+            v_steps[step].append(df.velocity[index - run_length + (1+step)*10])
 
     data_worked['x_initial'] = x_initial
     data_worked['v_initial'] = v_initial
-    data_worked['x_step10'] = x_step10
-    data_worked['v_step10'] = v_step10
-    data_worked['x_step20'] = x_step20
-    data_worked['v_step20'] = v_step20
-    data_worked['x_step30'] = x_step30
-    data_worked['v_step30'] = v_step30
-    data_worked['x_step40'] = x_step40
-    data_worked['v_step40'] = v_step40
-    data_worked['x_step50'] = x_step50
-    data_worked['v_step50'] = v_step50
+    for step in range(run_length//10):
+        step_num = (step+1)*10
+        data_worked[f'x_step{step_num:02d}'] = x_steps[step]
+        data_worked[f'v_step{step_num:02d}'] = v_steps[step]
 
-    # data_worked.to_csv(output_path)
+
     return data_worked
+
+
+def output_data(args, df):
+    output_name = args.output
+    output_path = './data/' + output_name +'.csv'
+    df.to_csv(output_path)
+
+def rework_data(args, df, run_length=50):
+    """command line version; 
+    reworks data in place and replaces the file with its improved version"""
+
+    return separate_data(df, run_length, xmax=args.xmax, vmax=args.vmax)
 
 
 def main(args):
@@ -100,15 +99,10 @@ def main(args):
     # combine all data frames into 1
     combined_df = pd.concat(dfs, ignore_index=True)
 
-
-
-
-
     # rework the data & save it
     output_data(args, combined_df)
 
     print(f"ammount of data so far: {len(combined_df)}")
-
 
 
 

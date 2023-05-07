@@ -11,7 +11,7 @@ def force_function(x,v):
     return (1/8000)*((x-1) * (x-11)**2 * (x-23)**2) - 0.7
 
 
-def random_data_generation( Nsamples,Nlayers ,dtime ,xtol ,force_function, xlim=(-1,1), vlim=(-1,1)):
+def random_data_generation(Nsamples, Nlayers ,dtime ,xtol ,force_function, xlim=(-1,1), vlim=(-1,1)):
     """
     main function, generates an ammount of Nsamples with random initial conditions
     and runs a scipy time integrator; the ammount of steps is controlled by Nlayers
@@ -37,27 +37,20 @@ def random_data_generation( Nsamples,Nlayers ,dtime ,xtol ,force_function, xlim=
         size=(Nsamples,2))
 
 
-    # defining the function for simulation
-    def f_dottz(t, z):
-        """function in the differential equation"""
-        x, v = z
-        dzdt = [v, force_function(x,v)]
-        return dzdt
-
-
     # ====== Generation of data ================
     for k_data in range(Nsamples):
         # generate the series with the inputs
         xi = random_xv[k_data][0]
         vi = random_xv[k_data][1]
 
-        # reconstruc the arguments with the ones that change
-        name = "_"
-        arguments = make_integrator_args(name,xi,vi,Nlayers, dtime)
-
         try:
-            data_id, sol_estatus, data_generated = run_integrator(
-                arguments, vec_function=f_dottz, relative_tolerance=xtol)
+            result_numeric_integration = integrate_diffeq(N=Nlayers, 
+                xi=xi, vi=vi, 
+                dt=dtime, 
+                force_function=force_function, 
+                xtol=xtol, atol=10*xtol)
+
+            data_id, sol_estatus, data_generated = result_numeric_integration
             # we use the last data point
             data_point = [xi,vi,data_generated[-1][1], data_generated[-1][2] ]
 

@@ -16,12 +16,9 @@ import csv
 
 # =========force function here============== <<<<
 
-input_ = np.linspace(0, 250, 500) # limits
-
-def force_function(x):
-    """ this function """
-    return  ( (x-1) * (x-11)**2 * (x-23)**2 / 8000 ) - 0.7
-
+def f_function(v):
+    """ example function """
+    return  - v
 
 
 # ==================================================================
@@ -29,58 +26,26 @@ def force_function(x):
 # ===========================================
 
 
-def fun(t, z):
-    """function in the differential equation"""
-    y, v = z
-
-    # ======== UPDATE HERE IF NEW force_function ================= <<<<
-    # dzdt = [v, force_function(y,v)]
-    dzdt = [v, force_function(y) ]
-    # ============================================================
-    return dzdt
-
-
-def export_force_function():
-    """
-    plots the force function and export a csv with the real force data
-    used for training
-    """
-
-    force_array = force_function(input_)
-
-    plt.title(f'Force function Force')
-    plt.plot( input_, force_array )
-    plt.grid()
-    plt.savefig(f'gen_data/force.png')
-    plt.show()
-    
-
-    data = np.vstack((input_, force_array)).T
-
-    with open(f'gen_data/force.csv', 'w', newline='') as file:
+def compile_data_to_csv(data, name, include_id=False):
+    """save data to the folder gen_data"""
+    with open(f'gen_data/{name}.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['input', 'force'])
+        if include_id:
+            writer.writerow(['id_conditions','time', 'position', 'velocity'])
+        else:
+            writer.writerow(['time', 'position', 'velocity'])
         writer.writerows(data)
 
 
-def compile_data_to_csv(data, args):
 
-
+def command_line_compile_to_csv(data, args):
     N = args.N
     z0 = [args.xi, args.vi]  # initial condition: y=1, v=0
     t0 = 0.0
     dt = args.dtime
-
-    tf = t0 + N * dt
-
-    t_span = [t0,tf]
-    t_eval = np.arange(start= t0, stop=tf, step=dt)
-
-    with open(f'gen_data/{args.name}.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['id_conditions','time', 'position', 'velocity'])
-        writer.writerows(data)
-
+    name = args.name
+    
+    compile_data_to_csv(data, name, include_id=False)
 
     # ======= writting the data configuration
     with open(f'gen_data/{args.name}_parameters.txt', 'w', newline='') as file:
@@ -90,6 +55,70 @@ def compile_data_to_csv(data, args):
         file.write(f'z0: {z0} \n')
         # file.write(f'tolerance: {tol} \n')
     # ======
+
+#     The main function here
+def integrate_diffeq(N, xi, vi, dt, debug=False, method="RK45",
+    force_function=f_function, force_type="speed", xtol=1e-3, atol=1e-2,
+    vectorize=True):
+    """
+    uses scipy.solve_ivp, with the RK45; if the integrator converge
+    it gives out an array: (data_id, t, y, v)
+    - data_id are the initial conditions as string
+    - t is the time of every data point
+    - y is the position at time t
+    - v is the speed at time t
+
+    - force_type: "position" or "speed" or "both"
+    """
+
+    z0 = [xi, vi]  # initial condition: y=1, v=0
+    t0 = 0.0    
+    tf = t0 + N * dt
+
+    if debug:
+        print(f't0: {t0}; tf: {tf}, dt: {dt}')
+
+    t_span = [t0,tf]
+    t_eval = np.arange(start= t0, stop=tf, step=dt)
+
+    def vec_function(t, z):
+        """creates the function in a vectorized way"""
+        y, v = z
+        if force_type == "position":
+            dzdt = [v, force_function(y) ]
+        elif force_type == "speed":
+            dzdt = [v, force_function(v) ]
+        elif force_type == "both":
+            dzdt = [v, force_function(y,v) ]
+        else:
+            raise ValueError(f"Unknown force_type: {force_type}")
+        return dzdt
+
+    # Integrator
+    sol = solve_ivp(fun=lambda t, z: vec_function(t, z), 
+        method= method,
+        t_span=t_span, y0=z0, t_eval=t_eval, vectorized=True, 
+        atol=atol, rtol=xtol)
+
+
+    # Given state of solution
+    if sol.status == 0:
+        
+        y = np.array(sol.y[0], dtype='float64') # position
+        v = np.array(sol.y[1], dtype='float64') # velocity
+
+        # this should be a float
+        data = np.vstack((sol.t, y, v)).T
+
+        return f"x{xi}-v{vi}", sol.status, data
+
+    else:
+        print('Solver failed to converge!')
+        if debug:
+            print(sol.message)
+
+        return sol.status, np.array([np.nan, np.nan, np.nan, np.nan])
+
 
 def make_integrator_args(name, xi, vi, N, dt):
     """
@@ -105,59 +134,7 @@ def make_integrator_args(name, xi, vi, N, dt):
     )
     return integrator_args
 
-
-
-def integrate_diffeq(N, xi, vi, dt, debug=False, vec_function=fun, xtol=1e-3, atol=1e-2):
-    """
-    uses scipy.solve_ivp, with the RK45; if the integrator converge
-    it gives out an array: (data_id, t, y, v)
-    - data_id are the initial conditions as string
-    - t is the time of every data point
-    - y is the position at time t
-    - v is the speed at time t
-    """
-
-    z0 = [xi, vi]  # initial condition: y=1, v=0
-    t0 = 0.0
-
-    # id for saving
-    data_id = f"xi_{xi}_vi_{vi}" # for every initial condition
-    
-    tf = t0 + N * dt
-    if debug:
-        print(f't0: {t0}; tf: {tf}, dt: {dt}')
-
-    t_span = [t0,tf]
-    t_eval = np.arange(start= t0, stop=tf, step=dt)
-
-    # Integrator
-    sol = solve_ivp(fun=lambda t, z: vec_function(t, z), 
-        t_span=t_span, y0=z0, t_eval=t_eval, vectorized=True, 
-        atol=atol, rtol=rtol)
-
-
-    # Given state of solution
-    if sol.status == 0:
-        
-        y = np.array(sol.y[0], dtype='float64') # position
-        v = np.array(sol.y[1], dtype='float64') # velocity
-
-        # this should be a float
-        data = np.vstack((sol.t, y, v)).T
-
-        return data_id, sol.status, data
-
-    else:
-        if debug:
-            print('Solver failed to converge!')
-            print(sol.message)
-
-        return sol.status, np.array([np.nan, np.nan, np.nan, np.nan])
-
-
-
-
-def run_integrator(args, debug=False, vec_function=fun):
+def run_integrator(args, debug=False, force_function=f_function):
     """
     it needs input as a pandas Series
     >> arguments = pd.Series({'name': name, 'xi': xi, 'vi':vi, 'N':N, 'dtime':dt })
@@ -165,7 +142,6 @@ def run_integrator(args, debug=False, vec_function=fun):
 
     by default it used the function defined in the script
     """
-
       
     # ================ change parameters here   =========
     N = args.N
@@ -174,7 +150,7 @@ def run_integrator(args, debug=False, vec_function=fun):
     dt = args.dtime
 
     return integrate_diffeq(N, xi, vi, dt, 
-        debug=False, vec_function=fun, xtol=1e-3, atol=1e-2)
+        debug=False, force_function=force_function)
 
 
 
@@ -186,7 +162,7 @@ def main(args):
     if solution_status == 0:
         # compile data sections
         print("Compilation function goes here")
-        compile_data_to_csv(data, args)
+        command_line_compile_to_csv(data, args)
 
     
 
@@ -194,16 +170,12 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Integrator for 2nd Order Differential Equation, it creates plot images and txt file with parameters')
     parser.add_argument('-name', type=str, help='Name of the files, recommended the standard [force_name]_[v_speed_initial], because we always use dt=1e-3 the name will include dt1e-3 at the end')
-    parser.add_argument('--force', help='exports and plots force data', action='store_true')
     parser.add_argument('-xi',type=float, help='specifies initial position')
     parser.add_argument('-vi',type=float, help='specifies initial velocity')
     parser.add_argument('-N',type=int, help='specifies ammounts of jump steps, recommended around 1e3 ')
     parser.add_argument('-dtime',type=float, help='specifies discrete jumps of time in integrator, recommended 5e-2')
     args = parser.parse_args()
     
-    # if -force is used, only execute the export_force_function()
-    if args.force:
-        export_force_function()
     
     if args.name:
         main(args)
