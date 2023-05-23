@@ -9,7 +9,10 @@ import glob
 #
 
 
-def separate_data(df, run_length=50, xmax=None, vmax=None):
+def separate_data(df, run_length=50, xmax=None, vmax=None,
+    position='position', velocity='velocity',
+    x0='x_initial', xf='x_step',
+    v0='v_initial', vf='v_step'):
     """
     given a long simulation, cut it into run_length pieces
     long simulation: [1,2,3,4,5...]
@@ -20,19 +23,21 @@ def separate_data(df, run_length=50, xmax=None, vmax=None):
         ...
 
     its recommended to be the depth of your network
+    
+    using the information on position and velocity
     """
 
     # filter data:
     if vmax:
         print(f"len of dataframe before vmax: {len(df)}")
-        bool_mask = df['velocity'] <= vmax
+        bool_mask = df[velocity] <= vmax
         df = df[ bool_mask ].reset_index(drop=True)
         # its important to reset index or will get errors when trying to acces non existen indexs
         print(f"len of dataframe after vmax: {len(df)}")
         
     if xmax:
         print(f"len of dataframe before xmax: {len(df)}")
-        bool_mask = df['position'] <= xmax
+        bool_mask = df[position] <= xmax
         df = df[ bool_mask ].reset_index(drop=True)
         print(f"len of dataframe after xmax: {len(df)}")
 
@@ -44,18 +49,18 @@ def separate_data(df, run_length=50, xmax=None, vmax=None):
     v_steps = [[] for _ in range(run_length//10)]
 
     for index in range(run_length, len(df) - 1, 10):
-        x_initial.append(df.position[index - run_length])
-        v_initial.append(df.velocity[index - run_length])
+        x_initial.append(df[position][index - run_length])
+        v_initial.append(df[velocity][index - run_length])
         for step in range(run_length//10):
-            x_steps[step].append(df.position[index - run_length + (1+step)*10])
-            v_steps[step].append(df.velocity[index - run_length + (1+step)*10])
+            x_steps[step].append(df[position][index - run_length + (1+step)*10])
+            v_steps[step].append(df[velocity][index - run_length + (1+step)*10])
 
-    data_worked['x_initial'] = x_initial
-    data_worked['v_initial'] = v_initial
+    data_worked[x0] = x_initial
+    data_worked[v0] = v_initial
     for step in range(run_length//10):
         step_num = (step+1)*10
-        data_worked[f'x_step{step_num:02d}'] = x_steps[step]
-        data_worked[f'v_step{step_num:02d}'] = v_steps[step]
+        data_worked[xf+f'{step_num:02d}'] = x_steps[step]
+        data_worked[vf+f'{step_num:02d}'] = v_steps[step]
 
 
     return data_worked

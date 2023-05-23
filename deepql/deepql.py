@@ -4,7 +4,8 @@ from random_data_generator import random_data_generation
 from integrate_data import compile_data_to_csv, integrate_diffeq
 from clean_data import separate_data
 import postprocessor
-import dataset
+from dataset import MyDataset 
+from dataset import DataLoader
 import diffnet
 
 

@@ -60,7 +60,7 @@ class F_percentage_function(nn.Module):
         self.force = nn.Parameter(torch.rand(N), requires_grad=True)
         self.lower_limit = lower_limit
         self.upper_limit = upper_limit
-        
+        self.N = N
         
     def forward(self, X):
         """
@@ -94,7 +94,7 @@ class F_percentage_function(nn.Module):
         plots the force points, giving not the index but the real meaning of inputs x
         """
         force_points = np.array(self.force.detach())
-        x_points = np.linspace(lower_limit, upper_limit, N)
+        x_points = np.linspace(self.lower_limit, self.upper_limit, self.N)
         
         plt.plot(x_points, force_points)
         plt.xlabel("x")
@@ -161,9 +161,9 @@ class diffNet(nn.Module):
         w_mat = W_matrix(dt= dt) # defined one time, always the same
 
         if ftype == "percentage":
-            activation_function = F_percentage_function(N, lower_limit, upper_limit, dt)
+            self.activation_function = F_percentage_function(N, lower_limit, upper_limit, dt)
         elif ftype == "discrete":
-            activation_function = F_function_discrete(dt= dt) 
+            self.activation_function = F_function_discrete(dt= dt) 
         else:
             print("Use arguments ftype='percentage' or 'discrete'")
 
@@ -172,7 +172,7 @@ class diffNet(nn.Module):
         layers.append(w_mat)
         
         for i in range(depth):
-            layers.append( activation_function )
+            layers.append( self.activation_function )
             layers.append( w_mat )
         
         if post_process:
@@ -184,6 +184,9 @@ class diffNet(nn.Module):
     def forward(self, X):
         return self.layers(X)
 
+
+    def plot_parameters(self):
+        self.activation_function.plot_force()
 
 
 

@@ -1,0 +1,14 @@
+- el modelo posee un self.model_epoch que indica cuantas epocas se ha entrenado
+- probar entrenarlo con las condiciones faciles para ver su capacidad
+	- probar hiperparametros al entrenar
+
+Como meta
+- entrenar 3 tipos de orbitas; elipticas, elipticas relativistas soft, y hard relativistas
+	- osea eliptica perfecta
+	- eliptica con una baja desviación
+	- eliptica con mucha desviación
+
+Entre los hiperparametros
+
+- profundidad de la red; que tan es capaz de captar el cambio con distintos saltos de tiempo
+	
