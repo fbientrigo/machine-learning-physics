@@ -5,13 +5,31 @@ import argparse
 
 
 def narrow_gaussian(x, mu=0, sigma=0.01):
-    """approximation of dirac delta, use a small sigma"""
+    """Approximation of Dirac delta function using a narrow Gaussian distribution.
+    
+    Args:
+        x (float): Input value.
+        mu (float, optional): Mean of the Gaussian distribution (default: 0).
+        sigma (float, optional): Standard deviation of the Gaussian distribution (default: 0.01).
+    
+    Returns:
+        float: The value of the narrow Gaussian distribution at the given input.
+    """
     pdf = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-(x - mu)**2 / (2 * sigma**2))
     return 1 - pdf / pdf.max()
 
 
 def post_process_data(data, xreal, epsilon):
-    """reads data and runs postprocessor"""
+    """Applies post-processing to the input data.
+    
+    Args:
+        data (pandas.DataFrame): The input data.
+        xreal (float): Threshold value for classifying data.
+        epsilon (float): Tolerance for classifying data.
+    
+    Returns:
+        pandas.DataFrame: The post-processed data with additional columns.
+    """
 
     new_data = data.copy()
 
@@ -36,9 +54,15 @@ def post_process_data(data, xreal, epsilon):
 
 # Plots together for obtaining data
 def p_run_plots(data, xreal, epsilon, force_function, save_path=None):
-    """ runs inside of main function, used for soft debugging your data after generation
-    requires a force_function(x,v)
-    include v even if its fixed """
+    """Generates plots for data analysis.
+    
+    Args:
+        data (pandas.DataFrame): The input data.
+        xreal (float): Threshold value for classifying data.
+        epsilon (float): Tolerance for classifying data.
+        force_function (function): The force function used in data generation.
+        save_path (str, optional): Path to save the plots (default: None).
+    """
 
     xlow = data['xi'].min()
     xhigh = data['xi'].max()

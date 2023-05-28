@@ -7,11 +7,6 @@ import numpy as np
 
 # =================================================================
 
-# resolution
-# 
-N = 256 # size of the array of Function F
-dt = 5e-2
-
 
 # =================================================================
 
@@ -20,9 +15,12 @@ class F_function_discrete(nn.Module):
     """
     Activation function for fitting, works by saving points in a parametrized array
     """
-    def __init__(self, dt):
+    def __init__(self, N=256, dt=5e-2, force_type='velocity'):
         super(F_function_discrete, self).__init__()
+        self.N = N
+        self.dt = dt
         self.force = nn.Parameter(torch.rand(N+1), requires_grad=True)
+        self.force_type = force_type
         
     def forward(self, X):
         """
@@ -38,12 +36,20 @@ class F_function_discrete(nn.Module):
         else:
             x, v = X[:,0], X[:,1]
 
-        floor_v = torch.floor(v).long()
-        ceil_v = (floor_v + 1).clamp(max=N).long() #adresses the overflow problem
-        alpha = v - floor_v
+        if self.force_type == 'velocity':
+            y = v
+        elif self.force_type == 'position':
+            y = x
+        else:
+            print("Force type values are 'position' or 'velocity'")
+        
+
+        floor_y = torch.floor(y).long()
+        ceil_y = (floor_y + 1).clamp(max=self.N).long() #adresses the overflow problem
+        alpha = y - floor_y
 
         # print(f"max: {max(ceil_v.int())}")
-        return torch.stack([x, v + dt* ( (1 - alpha) * self.force[floor_v] + alpha * self.force[ceil_v] ) ] ).T
+        return torch.stack([x, v + self.dt* ( (1 - alpha) * self.force[floor_y] + alpha * self.force[ceil_y] ) ] ).T
 
 
 class F_percentage_function(nn.Module):
@@ -53,14 +59,18 @@ class F_percentage_function(nn.Module):
     then the ammount of points it contains is decided with N
 
     this is the advanced version of F_function
+
+    force_type= "position" or "velocity"
     """
 
-    def __init__(self, N, lower_limit, upper_limit, dt):
+    def __init__(self, N, lower_limit, upper_limit, dt, force_type="position"):
         super(F_percentage_function, self).__init__()
         self.force = nn.Parameter(torch.rand(N), requires_grad=True)
         self.lower_limit = lower_limit
         self.upper_limit = upper_limit
         self.N = N
+        self.dt = dt
+        self.force_type = force_type
         
     def forward(self, X):
         """
@@ -76,17 +86,26 @@ class F_percentage_function(nn.Module):
         else:
             x, v = X[:,0], X[:,1]
 
-        # percentage for selecting the force point
-        y_percentage = (x - self.lower_limit)/(self.upper_limit - self.lower_limit) * 100
+        # percentage for selecting the force point 
+        if self.force_type == 'position':
+            y = x
+        elif self.force_type == 'velocity':
+            y = v
+        else:
+            print("force_type should be= 'position' or 'velocity'")
 
+
+        y_percentage = (y - self.lower_limit)/(self.upper_limit - self.lower_limit) * 100
         # Select the component of self.force that is closest to the percentage value
-        idx = torch.argmin(torch.abs(y_percentage.unsqueeze(1) - torch.arange(0, 100, 100/self.force.shape[0])), dim=1)
-
+        idx = torch.argmin(torch.abs(
+            y_percentage.unsqueeze(1) - torch.arange(0, 100, 100/self.force.shape[0])
+            ), dim=1)
+        
         # Get the selected force value
         selected_force = self.force[idx]
 
         # Return the updated input
-        return torch.stack([x, v + dt * selected_force]).T
+        return torch.stack([x, v + self.dt * selected_force]).T
 
 
     def plot_force(self):
@@ -97,7 +116,11 @@ class F_percentage_function(nn.Module):
         x_points = np.linspace(self.lower_limit, self.upper_limit, self.N)
         
         plt.plot(x_points, force_points)
-        plt.xlabel("x")
+        if self.force_type == 'position':
+            plt.xlabel("x")
+        elif self.force_type == 'velocity':
+            plt.xlabel("v")
+        
         plt.ylabel("force")
         plt.show()
 
@@ -113,8 +136,11 @@ class W_matrix(nn.Module):
 
 def narrow_gaussian(x, mu=0, sigma=0.01):
     """ used as an approximation to dirac delta, it reacts close when x is close to mu """
-    pdf = (1 / (sigma * torch.sqrt(2 * np.pi))) * torch.exp(-(x - mu)**2 / (2 * sigma**2))
-    return 1-pdf / pdf.max()
+    #pdf = (1 / (sigma * np.sqrt(2 * np.pi))) * torch.exp(-(x - mu)**2 / (2 * sigma**2))
+    # is not necessary to include other factors, when x=mu output will be 1
+    pdf = torch.exp(-(x - mu)**2 / (2 * sigma**2))
+    return pdf
+    
 
 class T_postprocessing(nn.Module):
     """
@@ -126,10 +152,11 @@ class T_postprocessing(nn.Module):
     """
     
 
-    def __init__(self, xreal = 0, epsilon = 1e-3):
+    def __init__(self, xreal = 0, epsilon = 1e-3, debug=False):
         super(T_postprocessing, self).__init__()
         self.xreal = xreal
         self.epsilon = epsilon
+        self.debug = debug
         
         
     def forward(self, X):
@@ -140,14 +167,16 @@ class T_postprocessing(nn.Module):
 
         # if x its close to xreal, this will return close to 0
         # else it returns close to 1
-        activation_result = narrow_gaussian(x, mu=xreal, sigma=epsilon)
+        activation_result = 1 - narrow_gaussian(x, mu=self.xreal, sigma=self.epsilon)
         
-        print("on post processing, activation result was:")
-        print(activation_result)
+        if self.debug:
+            print("on post processing, activation result was:")
+            print(activation_result)
 
-
-        if (activation_result >= epsilon): # if K is not close to 0
-            v = torch.full((len(v),), float('nan'))
+        # if K is not close to 0, its a failed forward
+        if (activation_result >= self.epsilon): 
+            infinity = 1e20
+            v = torch.full((len(v),), float(infinity))
 
         return torch.stack([activation_result, v]).T
 
@@ -155,20 +184,29 @@ class T_postprocessing(nn.Module):
 # =============== the Net ==================
 
 class diffNet(nn.Module):
-    def __init__(self, depth, lower_limit, upper_limit, dt, ftype='percentage',post_process=False,debug=True):
+    def __init__(self, depth, lower_limit, upper_limit, dt, N=256,
+        ftype='percentage',post_process=False, pp_mu=0, pp_epsilon=1e-3,
+        debug=True, force_type="velocity"):
+        """
+        Parameters:
+
+        Usage:
+        """
         super(diffNet, self).__init__()
         
-        w_mat = W_matrix(dt= dt) # defined one time, always the same
 
         if ftype == "percentage":
-            self.activation_function = F_percentage_function(N, lower_limit, upper_limit, dt)
+            self.activation_function = F_percentage_function(N, lower_limit, upper_limit, dt, force_type)
         elif ftype == "discrete":
-            self.activation_function = F_function_discrete(dt= dt) 
+            self.activation_function = F_function_discrete(dt= dt, N=N, force_type=force_type) 
         else:
             print("Use arguments ftype='percentage' or 'discrete'")
 
 
         layers = []
+
+        w_mat = W_matrix(dt= dt) # defined one time, always the same
+
         layers.append(w_mat)
         
         for i in range(depth):
@@ -176,6 +214,7 @@ class diffNet(nn.Module):
             layers.append( w_mat )
         
         if post_process:
+            post_process_layer = T_postprocessing(pp_mu, pp_epsilon, debug=debug)
             layers.append(post_process_layer)
 
 
@@ -188,7 +227,7 @@ class diffNet(nn.Module):
     def plot_parameters(self):
         self.activation_function.plot_force()
 
-
+        
 
 
 

@@ -5,8 +5,6 @@ import pandas as pd
 import argparse
 
 
-
-v=0 
 def force_function(x,v):
     return (1/8000)*((x-1) * (x-11)**2 * (x-23)**2) - 0.7
 
