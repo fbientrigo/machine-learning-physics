@@ -1,0 +1,6 @@
+setup.py
+deepql.egg-info/PKG-INFO
+deepql.egg-info/SOURCES.txt
+deepql.egg-info/dependency_links.txt
+deepql.egg-info/requires.txt
+deepql.egg-info/top_level.txt
