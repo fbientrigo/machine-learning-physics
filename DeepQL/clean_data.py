@@ -11,6 +11,7 @@ import glob
 
 def separate_data(df, run_length=50, xmax=None, vmax=None,
     position='position', velocity='velocity',
+    spacing=1,
     x0='x_initial', xf='x_step',
     v0='v_initial', vf='v_step'):
     """
@@ -25,6 +26,9 @@ def separate_data(df, run_length=50, xmax=None, vmax=None,
     its recommended to be the depth of your network
     
     using the information on position and velocity
+
+    spacing=1 will produce most data
+    spacing=10 will only add every 10th point
     """
 
     # filter data:
@@ -48,7 +52,7 @@ def separate_data(df, run_length=50, xmax=None, vmax=None,
     x_steps = [[] for _ in range(run_length//10)]
     v_steps = [[] for _ in range(run_length//10)]
 
-    for index in range(run_length, len(df) - 1, 10):
+    for index in range(run_length, len(df) - 1, spacing):
         x_initial.append(df[position][index - run_length])
         v_initial.append(df[velocity][index - run_length])
         for step in range(run_length//10):

@@ -142,6 +142,7 @@ def narrow_gaussian(x, mu=0, sigma=0.01):
     return pdf
     
 
+
 class T_postprocessing(nn.Module):
     """
     X takes a tensor and compares its position coordinate
@@ -174,9 +175,10 @@ class T_postprocessing(nn.Module):
             print(activation_result)
 
         # if K is not close to 0, its a failed forward
-        if (activation_result >= self.epsilon): 
-            infinity = 1e20
-            v = torch.full((len(v),), float(infinity))
+        # giving to big values so it will try to search for the correct position
+        infinity = 1e10
+        v = torch.where(activation_result >= self.epsilon, float(infinity), v)
+
 
         return torch.stack([activation_result, v]).T
 
@@ -186,7 +188,7 @@ class T_postprocessing(nn.Module):
 class diffNet(nn.Module):
     def __init__(self, depth, lower_limit, upper_limit, dt, N=256,
         ftype='percentage',post_process=False, pp_mu=0, pp_epsilon=1e-3,
-        debug=True, force_type="velocity"):
+        debug=False, force_type="velocity"):
         """
         Parameters:
 
