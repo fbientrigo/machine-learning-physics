@@ -122,7 +122,7 @@ class F_percentage_function(nn.Module):
             plt.xlabel("v")
         
         plt.ylabel("force")
-        plt.show()
+
 
 class W_matrix(nn.Module):
     """ we need a linear thats not trainable """
@@ -191,6 +191,7 @@ class diffNet(nn.Module):
         debug=False, force_type="velocity"):
         """
         Parameters:
+            depth: controls Delta t
 
         Usage:
         """
@@ -209,11 +210,11 @@ class diffNet(nn.Module):
 
         w_mat = W_matrix(dt= dt) # defined one time, always the same
 
-        layers.append(w_mat)
         
         for i in range(depth):
-            layers.append( self.activation_function )
             layers.append( w_mat )
+            layers.append( self.activation_function )
+            
         
         if post_process:
             post_process_layer = T_postprocessing(pp_mu, pp_epsilon, debug=debug)
