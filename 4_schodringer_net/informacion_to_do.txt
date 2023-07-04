@@ -1,0 +1,10 @@
+https://pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html
+https://pytorch.org/tutorials/beginner/basics/autogradqs_tutorial.html
+
+Tambien agregar
+[] senos para V
+[] step functions apra V
+
+
+Una excelente guia de autograd
+https://medium.com/@namanphy/understanding-autograd-5-pytorch-tensor-functions-8f47c27dc38
