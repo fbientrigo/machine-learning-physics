@@ -8,3 +8,4 @@ Activate the environment in this folder as
 conda activate tfq
 ```
 
+Many of the code use a LBFQS algorithm for fine tunning parameter, this is from !(https://github.com/yaroslavvb/stuff/blob/master/eager_lbfgs/eager_lbfgs.py)[yaroslavvb]
